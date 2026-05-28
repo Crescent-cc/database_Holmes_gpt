@@ -1,12 +1,14 @@
 """
 上下文管理 —— 组装对话消息、控制 Token 预算、裁剪历史。
 
-三级防爆机制（Readme 设计）：
+三级防爆机制：
   1. Evidence Store    → 完整工具结果不入 LLM 上下文，只传压缩摘要
   2. Observation Compressor → 工具结果压缩（见 observe/compressor.py）
   3. Context Budget     → 总 token 超限时裁剪旧消息（本模块负责）
 
-MVP 阶段：Evidence Store 暂不独立实现，退化到消息队列管理 + 预算裁剪。
+当前模块只负责第 3 层预算裁剪；Evidence Store 和 Observation Compressor
+分别由 observe/evidence_store.py 与 observe/compressor.py 实现，并在
+ReActLoop 中统一编排。
 
 裁剪策略：
   - System prompt 永远保留（不可丢弃）

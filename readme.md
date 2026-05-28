@@ -4,14 +4,14 @@
 
 ## 项目概述
 
-Database HolmesGPT 通过自研轻量 Agent Runtime，结合 MySQL 只读工具集、ReAct 多轮推理、诊断 Workflow、上下文裁剪、证据存储和 HITL 审批机制，实现对慢 SQL、索引问题、锁等待、大表治理等场景的自动诊断与优化建议生成。
+Database HolmesGPT 通过自研轻量 Agent Runtime，围绕 MySQL 诊断场景逐步建设 ReAct 多轮推理、工具执行、上下文裁剪、证据存储和 HITL 审批机制。当前项目已经具备 Agent Runtime 骨架、证据压缩链路和命令行 LLM 调试入口，具体 MySQL 只读工具和固定诊断 Workflow 还在扩展中。
 
-**核心能力：** 自动排查 → 自动收集证据 → 根因分析 → 优化建议生成 → 高风险操作人工审批。
+**目标能力：** 自动排查 → 自动收集证据 → 根因分析 → 优化建议生成 → 高风险操作人工审批。
 
 ## 架构
 
 ```
-User / CLI
+User / 调用方（CLI/API 后续可接入 agent 模式）
     ↓
 DatabaseHolmesInvestigator
     ↓
@@ -50,19 +50,9 @@ database_holmes_gpt/
     toolset.py         # 工具集边界（MySQL / PostgreSQL / 监控等）
     registry.py        # 工具注册中心
     executor.py        # 工具执行器
-    mysql/             # MySQL 工具集
-      slow_query.py    # 慢查询分析
-      schema.py        # 表结构查询
-      index.py         # 索引分析
-      explain.py       # 执行计划
-      processlist.py   # 进程列表
-      locks.py         # 锁等待分析
-      table_stats.py   # 表统计信息
+    mysql/__init__.py  # MySQL toolset 工厂，具体工具待加入
   workflow/            # 诊断工作流
     base.py
-    slow_query_diagnosis.py
-    lock_diagnosis.py
-    table_growth_diagnosis.py
   safety/              # 安全审批
     tool_risk.py       # 工具风险分级
     approval.py        # 人工审批流程
@@ -71,13 +61,7 @@ database_holmes_gpt/
     cache.py           # 结果缓存
     evidence_store.py  # 证据存储
   runtime/             # 入口
-    cli.py             # 命令行接口
-    api.py             # API 接口（可选）
-  examples/            # 示例与测试数据
-    docker-compose.yml
-    seed.sql
-    bad_queries.sql
-    demo_cases.md
+    cli.py             # 最小命令行聊天 REPL
 ```
 
 ## 快速开始
@@ -85,27 +69,30 @@ database_holmes_gpt/
 ### 环境要求
 
 - Python 3.10+
-- Docker & Docker Compose
-- MySQL 8.0+
-
-### 启动测试环境
-
-```bash
-cd examples
-docker-compose up -d
-```
+- 可选：MySQL 8.0+（后续接入真实只读诊断工具时需要）
 
 ### 安装依赖
 
 ```bash
-pip install -r requirements.txt
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+### 配置模型 Key
+
+```bash
+printf 'DEEPSEEK_API_KEY=你的_key\n' > .env
 ```
 
 ### 运行 CLI
 
 ```bash
+source .venv/bin/activate
 python -m runtime.cli
 ```
+
+当前 CLI 是最小聊天 REPL，用于验证 API Key、模型连通性和基础上下文管理。默认模型为 `deepseek-v4-flash`，默认地址为 `https://api.deepseek.com`；可通过 `--model`、`--base-url`、`--system` 覆盖。
 
 ## 核心模块
 
@@ -404,14 +391,16 @@ idx_user_id 与 idx_user_id_status 存在前缀重复。
 ### MVP
 
 - [√] 自研 ReAct Agent Runtime
-- [ ] Tool Registry / Executor
+- [√] Tool Registry / Executor
+- [√] Toolset 抽象和 MySQL toolset 工厂
+- [√] Evidence Store + Observation Compressor
+- [√] CLI 最小聊天 REPL
 - [ ] MySQL 只读工具集
 - [ ] 慢查询诊断 Workflow
 - [ ] EXPLAIN 分析
 - [ ] 索引建议生成
-- [ ] Evidence Store + Observation Compressor
 - [ ] HITL 模拟审批
-- [ ] CLI 演示
+- [ ] CLI agent/tool 诊断模式
 
 ### 后续
 

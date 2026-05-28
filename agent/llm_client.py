@@ -18,7 +18,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from openai import AsyncOpenAI
 
@@ -60,8 +62,8 @@ class LLMClient:
 
     使用示例：
         client = LLMClient(
-            model="deepseek-chat",
-            api_key="sk-xxx",
+            model="deepseek-v4-flash",
+            api_key=os.getenv("DEEPSEEK_API_KEY"),
             base_url="https://api.deepseek.com",
         )
         response = await client.chat(messages, tools)
@@ -73,8 +75,8 @@ class LLMClient:
 
     def __init__(
         self,
-        model: str = "deepseek-chat",
-        api_key: str = "sk-xxx",
+        model: str = "deepseek-v4-flash",
+        api_key: str | None = None,
         base_url: str = "https://api.deepseek.com",
         temperature: float = 0.0,
         max_retries: int = 2,
@@ -90,11 +92,52 @@ class LLMClient:
         self.model = model
         self.temperature = temperature
         self.max_retries = max_retries
+        resolved_api_key = api_key or self._resolve_api_key(base_url)
 
         self.client = AsyncOpenAI(
-            api_key=api_key,
+            api_key=resolved_api_key,
             base_url=base_url,
         )
+
+    @staticmethod
+    def _resolve_api_key(base_url: str) -> str:
+        """从环境变量解析 API Key，避免在代码中保留密钥占位。"""
+        LLMClient._load_local_env()
+        env_names = ["LLM_API_KEY"]
+        if "deepseek" in base_url:
+            env_names.insert(0, "DEEPSEEK_API_KEY")
+        if "openai" in base_url:
+            env_names.insert(0, "OPENAI_API_KEY")
+
+        for name in env_names:
+            value = os.getenv(name)
+            if value:
+                return value
+
+        raise ValueError(
+            "LLM API key is required. Pass api_key explicitly or set one of: "
+            + ", ".join(env_names)
+        )
+
+    @staticmethod
+    def _load_local_env(env_path: str | Path = ".env") -> None:
+        """加载当前项目 .env 中尚未存在的环境变量。
+
+        只支持 KEY=VALUE 的简单格式，避免为了读取本地密钥引入额外依赖。
+        """
+        path = Path(env_path)
+        if not path.exists():
+            return
+
+        for raw_line in path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip().strip('"').strip("'")
+            if key and key not in os.environ:
+                os.environ[key] = value
 
     async def chat(
         self,
