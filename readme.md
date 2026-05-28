@@ -403,7 +403,7 @@ idx_user_id 与 idx_user_id_status 存在前缀重复。
 
 ### MVP
 
-- [ ] 自研 ReAct Agent Runtime
+- [√] 自研 ReAct Agent Runtime
 - [ ] Tool Registry / Executor
 - [ ] MySQL 只读工具集
 - [ ] 慢查询诊断 Workflow
