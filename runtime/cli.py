@@ -2,7 +2,7 @@
 命令行入口。
 
 当前先提供最小可用的 LLM 聊天 REPL，方便验证 API Key、模型连通性和
-基础上下文管理。后续再把 InterviewGuide / MySQL toolset 接入成 agent 模式。
+基础上下文管理。后续再把 RAG 故障 workflow 和 toolset 接入成 agent 模式。
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from agent.llm_client import LLMClient
 
 DEFAULT_MODEL = "deepseek-v4-flash"
 DEFAULT_SYSTEM_PROMPT = (
-    "你是 Database HolmesGPT 的命令行调试助手。"
+    "你是 RAG Holmes / RAG Observer 的命令行调试助手。"
     "请用中文回答，保持简洁，遇到不确定的信息要明确说明。"
 )
 
@@ -25,7 +25,7 @@ DEFAULT_SYSTEM_PROMPT = (
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m runtime.cli",
-        description="Database HolmesGPT 命令行聊天入口",
+        description="RAG Holmes 命令行聊天入口",
     )
     parser.add_argument(
         "--model",
@@ -90,7 +90,7 @@ async def run_repl(args: argparse.Namespace) -> int:
         print(answer)
         return 0
 
-    print("Database HolmesGPT CLI")
+    print("RAG Holmes CLI")
     print("输入问题开始聊天；命令：/reset 清空上下文，/exit 退出。")
 
     while True:
